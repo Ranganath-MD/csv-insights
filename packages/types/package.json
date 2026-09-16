@@ -1,0 +1,22 @@
+{
+	"name": "@csv-insight/types",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "src/index.ts",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc --noEmit",
+		"lint": "echo 'Lint is not configured yet for types.'"
+	},
+	"devDependencies": {
+		"typescript": "^5.6.2"
+	}
+}
