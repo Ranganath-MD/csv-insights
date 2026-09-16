@@ -1,39 +1,38 @@
 "use client";
 
-import type { DatasetMetadata, ListDatasetsResponse } from "@csv-insight/types";
+import type { DatasetMetadata } from "@csv-insight/types";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
-
+import {
+	type ChangeEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { AppPageShell } from "@/components/app-page-shell";
 import { DatasetList } from "@/components/dataset-list";
+import { ErrorBanner } from "@/components/error-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { listDatasets, uploadDataset } from "@/lib/api";
 
-const API_BASE_URL = "http://localhost:4000";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 export default function DatasetsPage(): JSX.Element {
 	const router = useRouter();
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [datasets, setDatasets] = useState<DatasetMetadata[]>([]);
-	const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(
-		null,
-	);
+	const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	async function loadDatasets(): Promise<void> {
+	const loadDatasets = useCallback(async (): Promise<void> => {
 		try {
-			const response = await fetch(`${API_BASE_URL}/datasets`);
-			if (!response.ok) {
-				throw new Error("Failed to fetch datasets");
-			}
-
-			const payload = (await response.json()) as ListDatasetsResponse;
+			setError(null);
+			const payload = await listDatasets();
 			const nextDatasets = payload.datasets ?? [];
 			setDatasets(nextDatasets);
-
-			if (!selectedDatasetId && nextDatasets.length > 0) {
-				setSelectedDatasetId(nextDatasets[0]?.id ?? null);
-			}
+			setActiveDatasetId((current) => current ?? nextDatasets[0]?.id ?? null);
 		} catch (loadError) {
 			const message =
 				loadError instanceof Error
@@ -41,7 +40,7 @@ export default function DatasetsPage(): JSX.Element {
 					: "Unable to load datasets.";
 			setError(message);
 		}
-	}
+	}, []);
 
 	async function handleUpload(
 		event: ChangeEvent<HTMLInputElement>,
@@ -66,27 +65,9 @@ export default function DatasetsPage(): JSX.Element {
 		try {
 			setIsUploading(true);
 			setError(null);
-
-			const formData = new FormData();
-			formData.append("file", nextFile);
-
-			const response = await fetch(`${API_BASE_URL}/datasets`, {
-				method: "POST",
-				body: formData,
-			});
-
-			if (!response.ok) {
-				const payload = (await response
-					.json()
-					.catch(() => ({ error: "Upload failed" }))) as {
-					error?: string;
-				};
-				throw new Error(payload.error ?? "Upload failed");
-			}
-
-			const payload = (await response.json()) as { dataset: DatasetMetadata };
+			const payload = await uploadDataset(nextFile);
 			setDatasets((current) => [payload.dataset, ...current]);
-			setSelectedDatasetId(payload.dataset.id);
+			setActiveDatasetId(payload.dataset.id);
 			router.push(`/datasets/${payload.dataset.id}/table`);
 		} catch (uploadError) {
 			const message =
@@ -102,61 +83,38 @@ export default function DatasetsPage(): JSX.Element {
 
 	useEffect(() => {
 		void loadDatasets();
-	}, []);
+	}, [loadDatasets]);
 
 	return (
-		<main className="min-h-screen bg-background text-foreground">
-			<div className="w-full">
-				<header className="border-b border-border bg-card">
-					<div className="max-w-screen-lg mx-auto border-x flex flex-col gap-4  px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-						<div>
-							<p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-								CSV Insight
-							</p>
-						</div>
-
-						<div className="flex items-center gap-3">
-							<ThemeToggle />
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept=".csv,text/csv"
-								className="sr-only"
-								aria-label="Upload a CSV dataset"
-								onChange={handleUpload}
-							/>
-							<button
-								type="button"
-								onClick={() => fileInputRef.current?.click()}
-								disabled={isUploading}
-								className="inline-flex items-center justify-center border border-primary bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
-							>
-								{isUploading ? "Uploading..." : "Upload CSV"}
-							</button>
-						</div>
-					</div>
-				</header>
-
-				{error ? (
-					<div
-						className="mx-4 mt-4 border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:mx-6 lg:mx-8"
-						role="alert"
-					>
-						{error}
-					</div>
-				) : null}
-
-				<div className="max-w-screen-lg mx-auto border-x min-h-screen">
-					<DatasetList
-						datasets={datasets}
-						selectedDatasetId={selectedDatasetId}
-						onSelect={(datasetId) => {
-							setSelectedDatasetId(datasetId);
-							router.push(`/datasets/${datasetId}/table`);
-						}}
+		<AppPageShell
+			actions={
+				<>
+					<ThemeToggle />
+					<input
+						ref={fileInputRef}
+						type="file"
+						name="datasetCsv"
+						accept=".csv,text/csv"
+						className="sr-only"
+						aria-label="Upload a CSV dataset"
+						onChange={handleUpload}
 					/>
-				</div>
-			</div>
-		</main>
+					<Button
+						type="button"
+						onClick={() => fileInputRef.current?.click()}
+						disabled={isUploading}
+					>
+						{isUploading ? "Uploading..." : "Upload CSV"}
+					</Button>
+				</>
+			}
+			alert={<ErrorBanner message={error} />}
+		>
+			<DatasetList datasets={datasets} activeDatasetId={activeDatasetId} />
+		</AppPageShell>
+	);
+}
+			<DatasetList datasets={datasets} activeDatasetId={activeDatasetId} />
+		</AppPageShell>
 	);
 }

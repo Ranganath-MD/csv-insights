@@ -8,7 +8,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Button } from "./ui/button";
 
 type DatasetDataViewProps = {
 	dataset: DatasetMetadata | null;
@@ -18,6 +17,9 @@ type DatasetDataViewProps = {
 
 function formatStatus(value: string): string {
 	const normalized = value.toLowerCase();
+	if (normalized.length === 0) {
+		return "Unknown";
+	}
 	if (normalized.includes("shipped")) {
 		return "Shipped";
 	}
@@ -27,7 +29,7 @@ function formatStatus(value: string): string {
 	if (normalized.includes("cancel")) {
 		return "Cancelled";
 	}
-	return "Shipped";
+	return value;
 }
 
 function statusClasses(status: string): string {
@@ -56,96 +58,74 @@ export function DatasetDataView({
 
 	return (
 		<div>
-			<div className="flex flex-wrap items-center justify-between gap-4">
-				<div className="flex w-full max-w-xl items-center gap-3 border border-border bg-card px-4 py-3">
-					<span className="text-muted-foreground">⌕</span>
-					<input
-						className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-						placeholder="Filter product, region..."
-						aria-label="Filter dataset"
-					/>
-				</div>
+			<div className="border-t border-border">
+				<Table>
+					<TableHeader>
+						<TableRow className="bg-muted/40">
+							{columns.map((column) => (
+								<TableHead
+									key={column}
+									className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+								>
+									{column}
+								</TableHead>
+							))}
+						</TableRow>
+					</TableHeader>
 
-				<Button className="bg-red-500 h-12">
-					Delete
-				</Button>
-			</div>
-
-			<div className="p-0 border-t">
-				<div className="overflow-auto">
-					<Table>
-						<TableHeader>
-							<TableRow className="bg-muted/40">
-								{columns.map((column) => (
-									<TableHead
-										key={column}
-										className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
-									>
-										{column}
-									</TableHead>
-								))}
+					<TableBody>
+						{rows.length === 0 ? (
+							<TableRow>
+								<TableCell
+									colSpan={columns.length || 1}
+									className="py-8 text-center text-sm text-muted-foreground"
+								>
+									No rows available.
+								</TableCell>
 							</TableRow>
-						</TableHeader>
+						) : (
+							rows.map((row, rowIndex) => {
+								const rowKey = `${dataset.id}-${rowIndex}`;
 
-						<TableBody>
-							{rows.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={columns.length || 1}
-										className="py-8 text-center text-sm text-muted-foreground"
-									>
-										No rows available.
-									</TableCell>
-								</TableRow>
-							) : (
-								rows.map((row, rowIndex) => {
-									const status = ["status", "Status"].some(
-										(key) => key.toLowerCase() in row,
-									)
-										? formatStatus(String(row.status ?? "Shipped"))
-										: "Shipped";
+								return (
+									<TableRow key={rowKey} className="hover:bg-muted/35">
+										{columns.map((columnName) => {
+											const value = row[columnName];
 
-									return (
-										<TableRow
-											key={`${dataset.id}-${rowIndex}`}
-											className="hover:bg-muted/35"
-										>
-											{columns.map((columnName) => {
-												const value = row[columnName];
-
-												if (columnName.toLowerCase() === "status") {
-													return (
-														<TableCell
-															key={`${columnName}-${rowIndex}`}
-															className="text-sm text-foreground"
-														>
-															<span
-																className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusClasses(status)}`}
-															>
-																{status}
-															</span>
-														</TableCell>
-													);
-												}
+											if (columnName.toLowerCase() === "status") {
+												const status = formatStatus(String(value ?? ""));
 
 												return (
 													<TableCell
-														key={`${columnName}-${rowIndex}`}
-														className="px-4 py-1 text-sm text-foreground"
+														key={columnName}
+														className="text-sm text-foreground"
 													>
-														{value === null || value === undefined
-															? ""
-															: String(value)}
+														<span
+															className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusClasses(status)}`}
+														>
+															{status}
+														</span>
 													</TableCell>
 												);
-											})}
-										</TableRow>
-									);
-								})
-							)}
-						</TableBody>
-					</Table>
-				</div>
+											}
+
+											return (
+												<TableCell
+													key={columnName}
+													className="px-4 py-1 text-sm text-foreground"
+												>
+													{value === null || value === undefined
+														? ""
+														: String(value)}
+												</TableCell>
+											);
+										})}
+									</TableRow>
+								);
+							})
+						)}
+					</TableBody>
+				</Table>
 			</div>
 		</div>
 	);
