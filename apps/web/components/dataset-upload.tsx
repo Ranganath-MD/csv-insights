@@ -1,19 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadDataset } from "@/lib/api";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-export function DatasetUpload(): JSX.Element {
-	const router = useRouter();
+type DatasetUploadProps = {
+	onProcessingMessageChange?: (message: string | null) => void;
+	onUploadComplete?: () => void;
+};
+
+export function DatasetUpload({
+	onProcessingMessageChange,
+	onUploadComplete,
+}: Readonly<DatasetUploadProps>): JSX.Element {
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	async function handleUpload(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+	async function handleUpload(
+		event: ChangeEvent<HTMLInputElement>,
+	): Promise<void> {
 		const file = event.target.files?.[0];
 		if (!file) return;
 		if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -29,15 +37,41 @@ export function DatasetUpload(): JSX.Element {
 		try {
 			setIsUploading(true);
 			setError(null);
-			const { dataset } = await uploadDataset(file);
-			router.push(`/datasets/${dataset.id}/table`);
+			onProcessingMessageChange?.(null);
+			const result = await uploadDataset(file);
+			onProcessingMessageChange?.(
+				`Dataset uploaded. Processing... (id: ${result.datasetId})`,
+			);
+			onUploadComplete?.();
 		} catch (uploadError) {
-			setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
+			setError(
+				uploadError instanceof Error ? uploadError.message : "Upload failed",
+			);
 		} finally {
 			setIsUploading(false);
 			if (fileInputRef.current) fileInputRef.current.value = "";
 		}
 	}
 
-	return <div className="flex items-center gap-2"><input ref={fileInputRef} type="file" name="datasetCsv" accept=".csv,text/csv" className="sr-only" aria-label="Upload a CSV dataset" onChange={handleUpload} /><Button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>{isUploading ? "Uploading..." : "Upload CSV"}</Button>{error ? <span className="text-sm text-destructive">{error}</span> : null}</div>;
+	return (
+		<div className="flex items-center gap-2">
+			<input
+				ref={fileInputRef}
+				type="file"
+				name="datasetCsv"
+				accept=".csv,text/csv"
+				className="sr-only"
+				aria-label="Upload a CSV dataset"
+				onChange={handleUpload}
+			/>
+			<Button
+				type="button"
+				onClick={() => fileInputRef.current?.click()}
+				disabled={isUploading}
+			>
+				{isUploading ? "Uploading..." : "Upload CSV"}
+			</Button>
+			{error ? <span className="text-sm text-destructive">{error}</span> : null}
+		</div>
+	);
 }

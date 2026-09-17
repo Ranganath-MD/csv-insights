@@ -3,7 +3,9 @@ node_modules
 dist
 .next
 coverage
-pnpm-lock.yaml
 .DS_Store
 *.tsbuildinfo
 data/
+.env
+.env.*
+!.env.example

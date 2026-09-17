@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { extname, join } from "node:path";
+import { extname } from "node:path";
 import { analyzeCsv, createPlaceholderAnalysis } from "@csv-insight/analyzer";
 import type {
 	DatasetAnalysisResponse,
@@ -14,18 +13,75 @@ import type {
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mergeDatasetSources } from "./lib/dataset-source.js";
+import { S3ConfigurationError } from "./lib/s3.js";
+import {
+	DynamoDBService,
+	hydrateDatasetRecord,
+} from "./services/dynamodb.service.js";
+import {
+	createS3ObjectKey,
+	S3Service,
+	S3StorageError,
+} from "./services/s3.service.js";
 
 const port = Number(process.env.PORT ?? 4000);
 const app = new Hono();
-const dataDirectory = join(process.cwd(), "data", "datasets");
-
 type StoredDataset = DatasetMetadata & {
-	absFilePath: string;
+	s3ObjectKey: string;
 };
 
 const datasets = new Map<string, StoredDataset>();
 
-const dataDirectoryReady = mkdir(dataDirectory, { recursive: true });
+async function getStoredDatasetById(
+	datasetId: string,
+): Promise<StoredDataset | null> {
+	try {
+		const record = await new DynamoDBService().getDatasetById(datasetId);
+		if (record) {
+			const hydrated = hydrateDatasetRecord(record);
+			if (hydrated) {
+				return {
+					...hydrated,
+					s3ObjectKey: createS3ObjectKey(datasetId, record.filename),
+				};
+			}
+		}
+	} catch {
+		// Fall through to the in-memory dataset cache below.
+	}
+
+	const localDataset = datasets.get(datasetId);
+	if (localDataset) {
+		return localDataset;
+	}
+
+	return null;
+}
+
+async function listStoredDatasets(): Promise<StoredDataset[]> {
+	const localDatasets = Array.from(datasets.values());
+
+	try {
+		const persistedRecords = await new DynamoDBService().listDatasets();
+		const persistedDatasets = persistedRecords
+			.map((record) => {
+				const hydrated = hydrateDatasetRecord(record);
+				if (!hydrated) {
+					return null;
+				}
+				return {
+					...hydrated,
+					s3ObjectKey: createS3ObjectKey(record.datasetId, record.filename),
+				};
+			})
+			.filter((dataset): dataset is StoredDataset => dataset !== null);
+
+		return mergeDatasetSources(localDatasets, persistedDatasets);
+	} catch {
+		return localDatasets;
+	}
+}
 
 function getBasicCsvShape(csvText: string): {
 	rowCount: number;
@@ -166,6 +222,36 @@ function parseCsvRows(csvText: string): DatasetRow[] {
 		});
 }
 
+function hasBalancedCsvQuotes(csvText: string): boolean {
+	let inQuotes = false;
+	for (let index = 0; index < csvText.length; index += 1) {
+		if (csvText[index] !== '"') continue;
+		if (inQuotes && csvText[index + 1] === '"') {
+			index += 1;
+			continue;
+		}
+		inQuotes = !inQuotes;
+	}
+	return !inQuotes;
+}
+
+function storageErrorResponse(error: unknown, operation: "upload" | "read") {
+	if (error instanceof S3ConfigurationError) {
+		console.error("S3 configuration error:", error.message);
+		return { status: 503 as const, error: "S3 storage is not configured." };
+	}
+	if (error instanceof S3StorageError) {
+		console.error(`S3 ${error.operation} error:`, error.cause);
+	}
+	return {
+		status: 502 as const,
+		error:
+			operation === "upload"
+				? "Unable to store the dataset in S3."
+				: "Unable to read the dataset from S3.",
+	};
+}
+
 app.use("*", cors());
 
 app.get("/", (c) => {
@@ -184,8 +270,6 @@ app.get("/", (c) => {
 });
 
 app.post("/datasets", async (c) => {
-	await dataDirectoryReady;
-
 	let formData: FormData;
 	try {
 		formData = await c.req.formData();
@@ -202,50 +286,66 @@ app.post("/datasets", async (c) => {
 		return c.json({ error: "Uploaded file is empty" }, 400);
 	}
 
-	const fileExtension = extname(fileValue.name) || ".csv";
+	const fileExtension = extname(fileValue.name).toLowerCase();
+	if (fileExtension !== ".csv") {
+		return c.json({ error: "Only CSV files are supported" }, 400);
+	}
 	const datasetId = randomUUID();
-	const storedFileName = `${datasetId}${fileExtension}`;
-	const absFilePath = join(dataDirectory, storedFileName);
 	const fileBuffer = Buffer.from(await fileValue.arrayBuffer());
 	const csvText = fileBuffer.toString("utf8");
-	const csvShape = getBasicCsvShape(csvText);
+	if (csvText.trim().length === 0) {
+		return c.json({ error: "Uploaded CSV is empty" }, 400);
+	}
+	if (!hasBalancedCsvQuotes(csvText)) {
+		return c.json({ error: "Uploaded CSV is invalid" }, 400);
+	}
 
-	await writeFile(absFilePath, fileBuffer);
+	const s3ObjectKey = createS3ObjectKey(datasetId, fileValue.name);
+	try {
+		const s3 = new S3Service();
+		await s3.uploadCsv(s3ObjectKey, fileBuffer);
+	} catch (error) {
+		const response = storageErrorResponse(
+			error,
+			error instanceof S3StorageError ? error.operation : "upload",
+		);
+		return c.json({ error: response.error }, response.status);
+	}
 
-	const dataset: StoredDataset = {
+	const uploadedAt = new Date().toISOString();
+	const datasetShape = getBasicCsvShape(csvText);
+	datasets.set(datasetId, {
 		id: datasetId,
 		originalFileName: fileValue.name,
-		uploadedAt: new Date().toISOString(),
-		fileSizeBytes: fileValue.size,
-		rowCount: csvShape.rowCount,
-		columnCount: csvShape.columnCount,
-		absFilePath,
-	};
-
-	datasets.set(datasetId, dataset);
+		uploadedAt,
+		fileSizeBytes: fileBuffer.length,
+		rowCount: datasetShape.rowCount,
+		columnCount: datasetShape.columnCount,
+		s3ObjectKey,
+	});
 
 	const payload: UploadDatasetResponse = {
-		dataset: toDatasetMetadata(dataset),
+		datasetId,
+		filename: fileValue.name,
+		status: "processing",
+		uploadedAt,
 	};
 
 	return c.json(payload, 201);
 });
 
-app.get("/datasets", (c) => {
-	const allDatasets = Array.from(datasets.values())
-		.map((dataset) => toDatasetMetadata(dataset))
-		.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
-
+app.get("/datasets", async (c) => {
+	const allDatasets = await listStoredDatasets();
 	const payload: ListDatasetsResponse = {
-		datasets: allDatasets,
+		datasets: allDatasets.map((dataset) => toDatasetMetadata(dataset)),
 	};
 
 	return c.json(payload);
 });
 
-app.get("/datasets/:id", (c) => {
+app.get("/datasets/:id", async (c) => {
 	const datasetId = c.req.param("id");
-	const dataset = datasets.get(datasetId);
+	const dataset = await getStoredDatasetById(datasetId);
 
 	if (!dataset) {
 		return c.json({ error: "Dataset not found" }, 404);
@@ -260,7 +360,7 @@ app.get("/datasets/:id", (c) => {
 
 app.get("/datasets/:id/rows", async (c) => {
 	const datasetId = c.req.param("id");
-	const dataset = datasets.get(datasetId);
+	const dataset = await getStoredDatasetById(datasetId);
 
 	if (!dataset) {
 		return c.json({ error: "Dataset not found" }, 404);
@@ -276,7 +376,13 @@ app.get("/datasets/:id/rows", async (c) => {
 	const sortDirection =
 		c.req.query("sortDirection") === "desc" ? "desc" : "asc";
 
-	const csvText = await readFile(dataset.absFilePath, "utf8");
+	let csvText: string;
+	try {
+		csvText = await new S3Service().readCsv(dataset.s3ObjectKey);
+	} catch (error) {
+		const response = storageErrorResponse(error, "read");
+		return c.json({ error: response.error }, response.status);
+	}
 	let rows = parseCsvRows(csvText);
 
 	if (searchTerm) {
@@ -333,14 +439,31 @@ app.get("/datasets/:id/rows", async (c) => {
 
 app.get("/datasets/:id/analysis", async (c) => {
 	const datasetId = c.req.param("id");
-	const dataset = datasets.get(datasetId);
+	const dataset = await getStoredDatasetById(datasetId);
 
 	if (!dataset) {
 		return c.json({ error: "Dataset not found" }, 404);
 	}
 
-	const csvText = await readFile(dataset.absFilePath, "utf8");
+	let csvText: string;
+	try {
+		csvText = await new S3Service().readCsv(dataset.s3ObjectKey);
+	} catch (error) {
+		const response = storageErrorResponse(error, "read");
+		return c.json({ error: response.error }, response.status);
+	}
 	const analysis = await analyzeCsv(csvText);
+	try {
+		await new DynamoDBService().saveAnalysis({
+			datasetId,
+			filename: dataset.originalFileName,
+			analysis,
+			status: "processed",
+			uploadedAt: dataset.uploadedAt,
+		});
+	} catch (error) {
+		console.error("DynamoDB analysis persistence failed:", error);
+	}
 	const payload: DatasetAnalysisResponse = {
 		datasetId,
 		analysis,

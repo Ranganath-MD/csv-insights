@@ -38,7 +38,10 @@ export interface DatasetMetadata {
 }
 
 export interface UploadDatasetResponse {
-	dataset: DatasetMetadata;
+	datasetId: string;
+	filename: string;
+	status: "processing";
+	uploadedAt: string;
 }
 
 export interface ListDatasetsResponse {
