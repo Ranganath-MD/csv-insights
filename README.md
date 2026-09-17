@@ -43,10 +43,11 @@ pnpm install
 
 ## Run
 
-Copy `apps/api/.env.example` to `apps/api/.env` and set `AWS_REGION` and
-`S3_BUCKET_NAME`. Authenticate locally through the standard AWS credential provider
-chain (such as AWS SSO or a named AWS profile); do not add credentials to `.env`.
-Set `AWS_PROFILE` when the intended identity is not your default AWS profile.
+Copy `apps/api/.env.example` to `apps/api/.env` and set `AWS_REGION`,
+`S3_BUCKET_NAME`, and `DYNAMODB_TABLE_NAME`. Authenticate locally through the
+standard AWS credential provider chain (such as AWS SSO or a named AWS profile);
+do not add credentials to `.env`. Set `AWS_PROFILE` when the intended identity is
+not your default AWS profile.
 
 Start all dev servers:
 

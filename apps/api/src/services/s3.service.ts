@@ -33,7 +33,7 @@ export function sanitizeObjectFileName(originalFileName: string): string {
 	const sanitized = originalFileName
 		.normalize("NFKD")
 		.replace(/[^a-zA-Z0-9._-]+/g, "-")
-		.replace(/^[-.]+|[-.]+$/g, "");
+		.replace(/^[.-]+|[.-]+$/g, "");
 	return sanitized || "upload.csv";
 }
 

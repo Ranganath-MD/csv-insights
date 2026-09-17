@@ -17,8 +17,10 @@
 		"@csv-insight/analyzer": "workspace:*",
 		"@csv-insight/types": "workspace:*",
 		"@hono/node-server": "^1.13.7",
+		"@hono/zod-validator": "^0.9.1",
 		"dotenv": "^17.4.2",
-		"hono": "^4.6.5"
+		"hono": "^4.6.5",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@types/node": "^22.7.4",
