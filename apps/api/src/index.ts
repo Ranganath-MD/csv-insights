@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { createPlaceholderAnalysis } from "@csv-insight/analyzer";
+import { analyzeCsv, createPlaceholderAnalysis } from "@csv-insight/analyzer";
 import type {
+	DatasetAnalysisResponse,
 	DatasetDetailResponse,
 	DatasetMetadata,
 	DatasetRow,
@@ -177,6 +178,7 @@ app.get("/", (c) => {
 			uploadDataset: "POST /datasets",
 			listDatasets: "GET /datasets",
 			datasetDetail: "GET /datasets/:id",
+			datasetAnalysis: "GET /datasets/:id/analysis",
 		},
 	});
 });
@@ -264,14 +266,84 @@ app.get("/datasets/:id/rows", async (c) => {
 		return c.json({ error: "Dataset not found" }, 404);
 	}
 
+	const page = Math.max(1, Number(c.req.query("page") ?? 1) || 1);
+	const pageSize = Math.min(
+		100,
+		Math.max(1, Number(c.req.query("pageSize") ?? 100) || 100),
+	);
+	const searchTerm = (c.req.query("search") ?? "").trim().toLowerCase();
+	const sortBy = c.req.query("sortBy") ?? "";
+	const sortDirection =
+		c.req.query("sortDirection") === "desc" ? "desc" : "asc";
+
 	const csvText = await readFile(dataset.absFilePath, "utf8");
-	const rows = parseCsvRows(csvText);
+	let rows = parseCsvRows(csvText);
+
+	if (searchTerm) {
+		rows = rows.filter((row) =>
+			Object.values(row).some((value) => {
+				if (value === null || value === undefined) {
+					return false;
+				}
+				return String(value).toLowerCase().includes(searchTerm);
+			}),
+		);
+	}
+
+	if (sortBy) {
+		rows = [...rows].sort((left, right) => {
+			const leftValue = left[sortBy];
+			const rightValue = right[sortBy];
+			const normalizedLeft =
+				leftValue === null || leftValue === undefined ? "" : String(leftValue);
+			const normalizedRight =
+				rightValue === null || rightValue === undefined
+					? ""
+					: String(rightValue);
+			const leftNumber = Number(normalizedLeft);
+			const rightNumber = Number(normalizedRight);
+			const bothNumeric =
+				!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber);
+
+			const comparison = bothNumeric
+				? leftNumber - rightNumber
+				: normalizedLeft.localeCompare(normalizedRight, undefined, {
+						numeric: true,
+						sensitivity: "base",
+					});
+
+			return sortDirection === "desc" ? comparison * -1 : comparison;
+		});
+	}
+
+	const totalRows = rows.length;
+	const startIndex = (page - 1) * pageSize;
+	const paginatedRows = rows.slice(startIndex, startIndex + pageSize);
+
 	const payload: DatasetRowsResponse = {
 		datasetId,
-		page: 1,
-		pageSize: rows.length,
-		totalRows: rows.length,
-		rows,
+		page,
+		pageSize,
+		totalRows,
+		rows: paginatedRows,
+	};
+
+	return c.json(payload);
+});
+
+app.get("/datasets/:id/analysis", async (c) => {
+	const datasetId = c.req.param("id");
+	const dataset = datasets.get(datasetId);
+
+	if (!dataset) {
+		return c.json({ error: "Dataset not found" }, 404);
+	}
+
+	const csvText = await readFile(dataset.absFilePath, "utf8");
+	const analysis = await analyzeCsv(csvText);
+	const payload: DatasetAnalysisResponse = {
+		datasetId,
+		analysis,
 	};
 
 	return c.json(payload);

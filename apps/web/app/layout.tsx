@@ -14,7 +14,7 @@ type RootLayoutProps = {
 	children: ReactNode;
 };
 
-export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
+export default function RootLayout({ children }: Readonly<RootLayoutProps>): JSX.Element {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body className="min-h-screen bg-background text-foreground antialiased">

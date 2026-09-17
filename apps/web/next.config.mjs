@@ -4,6 +4,15 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/datasets",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

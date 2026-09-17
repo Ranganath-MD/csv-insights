@@ -57,15 +57,15 @@ export function DatasetDataView({
 	}
 
 	return (
-		<div>
-			<div className="border-t border-border">
-				<Table>
-					<TableHeader>
-						<TableRow className="bg-muted/40">
+		<div className="border border-border bg-card">
+			<div className="max-h-[calc(100vh-240px)] overflow-auto">
+				<Table className="relative">
+					<TableHeader className="sticky top-0 z-10 bg-muted/85 backdrop-blur-sm">
+						<TableRow>
 							{columns.map((column) => (
 								<TableHead
 									key={column}
-									className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+									className="whitespace-nowrap border-b border-border bg-muted/85 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
 								>
 									{column}
 								</TableHead>
@@ -98,7 +98,7 @@ export function DatasetDataView({
 												return (
 													<TableCell
 														key={columnName}
-														className="text-sm text-foreground"
+														className="whitespace-nowrap text-sm text-foreground"
 													>
 														<span
 															className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusClasses(status)}`}
@@ -112,7 +112,7 @@ export function DatasetDataView({
 											return (
 												<TableCell
 													key={columnName}
-													className="px-4 py-1 text-sm text-foreground"
+													className="whitespace-nowrap px-4 py-1 text-sm text-foreground"
 												>
 													{value === null || value === undefined
 														? ""

@@ -1,5 +1,7 @@
 import type {
+	DatasetAnalysisResponse,
 	DatasetDetailResponse,
+	DatasetRowsQuery,
 	DatasetRowsResponse,
 	ListDatasetsResponse,
 	UploadDatasetResponse,
@@ -54,14 +56,49 @@ export async function getDataset(
 
 export async function getDatasetRows(
 	datasetId: string,
+	options: Partial<DatasetRowsQuery> = {},
 ): Promise<DatasetRowsResponse> {
-	const response = await fetch(buildApiUrl(`/datasets/${datasetId}/rows`), {
+	const params = new URLSearchParams();
+	if (options.page) {
+		params.set("page", String(options.page));
+	}
+	if (options.pageSize) {
+		params.set("pageSize", String(options.pageSize));
+	}
+	if (options.search) {
+		params.set("search", options.search);
+	}
+	if (options.sortBy) {
+		params.set("sortBy", options.sortBy);
+	}
+	if (options.sortDirection) {
+		params.set("sortDirection", options.sortDirection);
+	}
+
+	const queryString = params.toString();
+	const url = buildApiUrl(
+		`/datasets/${datasetId}/rows${queryString ? `?${queryString}` : ""}`,
+	);
+	const response = await fetch(url, {
 		cache: "no-store",
 	});
 
 	return parseJsonResponse<DatasetRowsResponse>(
 		response,
 		"Failed to fetch dataset rows",
+	);
+}
+
+export async function getDatasetAnalysis(
+	datasetId: string,
+): Promise<DatasetAnalysisResponse> {
+	const response = await fetch(buildApiUrl(`/datasets/${datasetId}/analysis`), {
+		cache: "no-store",
+	});
+
+	return parseJsonResponse<DatasetAnalysisResponse>(
+		response,
+		"Unable to load dataset analysis",
 	);
 }
 
