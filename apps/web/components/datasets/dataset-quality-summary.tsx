@@ -15,7 +15,7 @@ function formatPercentage(value: number): string {
 export function DatasetQualitySummary({
 	dataset,
 	analysis,
-}: Readonly<DatasetQualitySummaryProps>): JSX.Element | null {
+}: Readonly<DatasetQualitySummaryProps>): React.ReactElement | null {
 	if (!dataset || !analysis) {
 		return null;
 	}

@@ -47,7 +47,7 @@ export function DatasetDataView({
 	dataset,
 	rows,
 	columns,
-}: Readonly<DatasetDataViewProps>): JSX.Element {
+}: Readonly<DatasetDataViewProps>): React.ReactElement {
 	if (!dataset) {
 		return (
 			<div className="border border-border bg-card p-10 text-center text-sm text-muted-foreground">

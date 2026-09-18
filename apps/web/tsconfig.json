@@ -5,12 +5,15 @@
 		"paths": {
 			"@/*": ["./*"]
 		},
+		"module": "esnext",
+		"moduleResolution": "bundler",
 		"plugins": [
 			{
 				"name": "next"
 			}
 		],
-		"jsx": "preserve",
+		"types": ["react", "react-dom", "node"],
+		"jsx": "react-jsx",
 		"lib": ["DOM", "DOM.Iterable", "ES2022"],
 		"allowJs": false,
 		"incremental": true,

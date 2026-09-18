@@ -6,6 +6,6 @@ import type * as React from "react";
 export function ThemeProvider({
 	children,
 	...props
-}: Readonly<React.ComponentProps<typeof NextThemesProvider>>): JSX.Element {
+}: Readonly<React.ComponentProps<typeof NextThemesProvider>>): React.ReactElement {
 	return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }

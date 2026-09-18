@@ -51,14 +51,18 @@ export async function getDatasetTablePageData(
 		normalizeDatasetTableQuery(searchParams);
 
 	const [datasetPayload, rowsPayload, analysisPayload] = await Promise.all([
-		getDataset(datasetId),
+		getDataset(datasetId).catch(
+			() => ({ dataset: null } as { dataset: DatasetMetadata | null }),
+		),
 		getDatasetRows(datasetId, {
 			page,
 			pageSize: DATASET_TABLE_PAGE_SIZE,
 			search,
 			sortBy,
 			sortDirection,
-		}),
+		}).catch(
+			() => ({ rows: [], totalRows: 0 } as { rows: DatasetRow[]; totalRows: number }),
+		),
 		getDatasetAnalysis(datasetId).catch(() => null),
 	]);
 

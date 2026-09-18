@@ -4,7 +4,7 @@ import { Moon, SunMedium } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-export function ThemeToggle(): JSX.Element {
+export function ThemeToggle(): React.ReactElement {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 

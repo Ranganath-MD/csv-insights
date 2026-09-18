@@ -4,7 +4,7 @@ type ErrorBannerProps = {
 
 export function ErrorBanner({
 	message,
-}: Readonly<ErrorBannerProps>): JSX.Element | null {
+}: Readonly<ErrorBannerProps>): React.ReactElement | null {
 	if (!message) {
 		return null;
 	}

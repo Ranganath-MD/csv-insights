@@ -9,20 +9,21 @@ import { Button } from "@/components/ui/button";
 import { buildDatasetTableHref, getDatasetTablePageData } from "@/lib/datasets";
 
 type DatasetTablePageProps = {
-	params: { datasetId: string };
-	searchParams: {
+	params: Promise<{ datasetId: string }>;
+	searchParams: Promise<{
 		page?: string;
 		search?: string;
 		sortBy?: string;
 		sortDirection?: string;
-	};
+	}>;
 };
 
 export default async function DatasetTablePage({
 	params,
 	searchParams,
-}: Readonly<DatasetTablePageProps>): Promise<JSX.Element> {
-	const datasetId = params.datasetId;
+}: Readonly<DatasetTablePageProps>): Promise<React.ReactElement> {
+	const { datasetId } = await params;
+	const resolvedSearchParams = await searchParams;
 	const {
 		dataset,
 		analysis,
@@ -34,7 +35,7 @@ export default async function DatasetTablePage({
 		search,
 		sortBy,
 		sortDirection,
-	} = await getDatasetTablePageData(datasetId, searchParams);
+	} = await getDatasetTablePageData(datasetId, resolvedSearchParams);
 
 	return (
 		<AppPageShell

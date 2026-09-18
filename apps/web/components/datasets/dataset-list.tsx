@@ -28,7 +28,7 @@ function formatBytes(bytes: number): string {
 export function DatasetList({
 		datasets,
 		activeDatasetId,
-	}: Readonly<DatasetListProps>): JSX.Element {
+	}: Readonly<DatasetListProps>): React.ReactElement {
 		return (
 			<section aria-labelledby="datasets-heading" className="p-4 sm:p-6">
 				<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -16,12 +16,12 @@ export function AppPageShell({
 	alert,
 	children,
 	contentClassName,
-}: Readonly<AppPageShellProps>): JSX.Element {
+}: Readonly<AppPageShellProps>): React.ReactElement {
 	return (
 		<main className="min-h-screen bg-background text-foreground">
 			<div className="w-full">
-				<header className="border-b border-border bg-card">
-					<div className="mx-auto flex max-w-screen-lg flex-col gap-4 border-x px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+				<header className="border-b border-border">
+					<div className="mx-auto flex max-w-7xl flex-col gap-4 border-x px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
 						<div>
 							<p className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
 								CSV Insight
@@ -43,7 +43,7 @@ export function AppPageShell({
 
 				<div
 					className={cn(
-						"mx-auto min-h-screen max-w-screen-lg border-x",
+						"mx-auto min-h-screen max-w-7xl border-x",
 						contentClassName,
 					)}
 				>

@@ -6,15 +6,7 @@ import { uploadDataset } from "@/lib/api";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-type DatasetUploadProps = {
-	onProcessingMessageChange?: (message: string | null) => void;
-	onUploadComplete?: () => void;
-};
-
-export function DatasetUpload({
-	onProcessingMessageChange,
-	onUploadComplete,
-}: Readonly<DatasetUploadProps>): JSX.Element {
+export function DatasetUpload(): React.ReactElement {
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -37,12 +29,7 @@ export function DatasetUpload({
 		try {
 			setIsUploading(true);
 			setError(null);
-			onProcessingMessageChange?.(null);
-			const result = await uploadDataset(file);
-			onProcessingMessageChange?.(
-				`Dataset uploaded. Processing... (id: ${result.datasetId})`,
-			);
-			onUploadComplete?.();
+			await uploadDataset(file);
 		} catch (uploadError) {
 			setError(
 				uploadError instanceof Error ? uploadError.message : "Upload failed",

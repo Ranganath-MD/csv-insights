@@ -1,9 +1,25 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import "./globals.css";
 
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 
-import "./globals.css";
+const geist_display = Geist({
+	subsets: ["latin"],
+	weight: ["600"],
+	variable: "--display-family",
+});
+const geist_body = Geist({
+	subsets: ["latin"],
+	weight: ["400"],
+	variable: "--body-family",
+});
+const geist_mono = Geist_Mono({
+	subsets: ["latin"],
+	weight: ["400"],
+	variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
 	title: "CSV Insight",
@@ -14,9 +30,15 @@ type RootLayoutProps = {
 	children: ReactNode;
 };
 
-export default function RootLayout({ children }: Readonly<RootLayoutProps>): JSX.Element {
+export default function RootLayout({
+	children,
+}: Readonly<RootLayoutProps>): React.ReactElement {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html
+			lang="en"
+			suppressHydrationWarning
+			className={`${geist_display.variable} ${geist_body.variable} ${geist_mono.variable}`}
+		>
 			<body className="min-h-screen bg-background text-foreground antialiased">
 				<ThemeProvider
 					attribute="class"

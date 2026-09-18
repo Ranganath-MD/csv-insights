@@ -5,7 +5,7 @@ export default function DatasetsError({
 }: Readonly<{
 	error: Error & { digest?: string };
 	reset: () => void;
-}>): JSX.Element {
+}>): React.ReactElement {
 	return (
 		<section className="p-6">
 			<div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
