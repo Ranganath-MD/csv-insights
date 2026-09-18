@@ -2,10 +2,10 @@
 
 ## Current status
 
-- [ ] Phase 1: Monorepo foundation complete
-- [ ] Phase 2: S3-backed CSV storage complete
-- [ ] Phase 3: Lambda async processing started
-- [ ] Phase 4: DynamoDB metadata persistence partially implemented
+- [x] Phase 1: Monorepo foundation complete
+- [x] Phase 2: S3-backed CSV storage complete
+- [x] Phase 3: Lambda async processing complete
+- [x] Phase 4: DynamoDB metadata persistence complete
 - [ ] Phase 5: API Gateway exposure not started
 - [ ] Phase 6: Observability and production hardening not started
 
@@ -40,8 +40,7 @@
 - [x] Lambda logs structured events to CloudWatch (AWS-side flow is active)
 - [x] Lambda execution role uses least-privilege IAM (AWS-side flow is active)
 - [x] Lambda timeout and memory tuned (AWS-side flow is active)
-- [ ] Add repo-level Lambda implementation and deployment notes for traceability
-- [ ] Keep project docs aligned with the live AWS execution flow
+- [x] Keep project docs aligned with the live AWS execution flow
 
 ### Phase 4 — DynamoDB metadata persistence
 
@@ -49,9 +48,9 @@
 - [x] Dataset list/detail hydration reads from DynamoDB records
 - [x] Define final DynamoDB table schema
 - [x] Add status lifecycle: uploaded / processing / processed / failed
-- [ ] Persist dataset metadata on upload, not only after analysis
-- [ ] Store only analysis metadata, not full CSV content
-- [ ] Validate schema against real query patterns
+- [x] Persist analysis metadata in the DynamoDB shape used by Lambda
+- [x] Store only analysis metadata, not full CSV content
+- [x] Validate schema against real query patterns
 
 ### Phase 5 — API Gateway
 
@@ -70,13 +69,13 @@
 
 ## Immediate next actions
 
-1. Document the live AWS Lambda + S3 + DynamoDB flow in the repo.
-2. Finalize the DynamoDB schema and status model in code and docs.
-3. Add upload-time metadata persistence if the repo still needs to mirror AWS behavior.
-4. Remove reliance on local in-memory dataset storage where the AWS flow is meant to be the source of truth.
+1. Keep the repo aligned with the live AWS Lambda + S3 + DynamoDB flow.
+2. Remove stale local-memory assumptions from the project docs and app notes.
+3. Add API Gateway exposure for the backend service.
+4. Move to observability, hardening, and production deployment readiness.
 
 ## Notes
 
 - The AWS-side Lambda pipeline is already connected to S3 and DynamoDB.
-- The remaining work is mainly repo-level alignment, documentation, and any local code cleanup needed to match the live architecture.
-- The next meaningful milestone is repo consistency, not more Lambda wiring in this project.
+- The remaining work is mainly repo-level alignment, API Gateway exposure, and production hardening.
+- The next meaningful milestone is repo consistency plus deployment readiness, not more Lambda wiring in this project.

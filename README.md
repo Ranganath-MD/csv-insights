@@ -11,9 +11,10 @@ This repository contains Phase 2 S3-backed CSV storage on top of the Phase 1 fou
 - `packages/analyzer` (CSV analysis interface)
 - `docs` folders for architecture, AWS notes, and interview prep
 
-Uploaded CSV objects are stored in a private Amazon S3 bucket. Dataset metadata is
-still kept in memory for this learning phase, while analysis records are written to
-DynamoDB for the AWS-first async flow.
+Uploaded CSV objects are stored in a private Amazon S3 bucket. The production-facing
+flow is the AWS async path: S3 triggers a Lambda, the Lambda analyzes the CSV, and
+metadata/analysis records are persisted in DynamoDB. The repo may still include local
+fallback behavior for development, but the live architecture is the AWS-backed flow.
 
 ## Workspace Structure
 
@@ -77,7 +78,7 @@ pnpm lint
 
 ## Current Milestone
 
-Phase 3: `Next.js -> Node API -> Amazon S3 -> Lambda -> analysis -> DynamoDB`.
+Phase 4: `Next.js + Node API -> Amazon S3 -> Lambda -> analysis metadata in DynamoDB`.
 
 ## API Endpoints
 
@@ -95,5 +96,6 @@ Base URL: `http://localhost:4000`
 Storage behavior:
 
 - Original uploaded CSV files are stored in S3 under unique `uploads/{id}/...` keys
-- The API reads each object from S3 before serving rows or analysis
-- Dataset metadata is kept in memory (resets when API restarts)
+- The AWS Lambda pipeline reads the object from S3 and persists analysis metadata to DynamoDB
+- The local app can still read from DynamoDB and S3 for development and validation
+- Dataset metadata is not treated as the source of truth in the live AWS architecture
