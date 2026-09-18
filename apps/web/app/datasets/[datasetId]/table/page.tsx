@@ -1,12 +1,12 @@
-import type { DatasetMetadata, DatasetRow } from "@csv-insight/types";
 import Link from "next/link";
 
 import { AppPageShell } from "@/components/app-page-shell";
-import { DatasetDataView } from "@/components/dataset-data-view";
+import { DatasetDataView } from "@/components/datasets/dataset-data-view";
+import { DatasetQualitySummary } from "@/components/datasets/dataset-quality-summary";
 import { ErrorBanner } from "@/components/error-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { getDataset, getDatasetRows } from "@/lib/api";
+import { buildDatasetTableHref, getDatasetTablePageData } from "@/lib/datasets";
 
 type DatasetTablePageProps = {
 	params: { datasetId: string };
@@ -18,58 +18,23 @@ type DatasetTablePageProps = {
 	};
 };
 
-const PAGE_SIZE = 100;
-
 export default async function DatasetTablePage({
 	params,
 	searchParams,
 }: Readonly<DatasetTablePageProps>): Promise<JSX.Element> {
 	const datasetId = params.datasetId;
-	const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
-	const search = searchParams.search?.trim() ?? "";
-	const sortBy = searchParams.sortBy?.trim() ?? "";
-	const sortDirection = searchParams.sortDirection === "desc" ? "desc" : "asc";
-	let dataset: DatasetMetadata | null = null;
-	let rows: DatasetRow[] = [];
-	let totalRows = 0;
-	let error: string | null = null;
-
-	try {
-		const [datasetPayload, rowsPayload] = await Promise.all([
-			getDataset(datasetId),
-			getDatasetRows(datasetId, {
-				page,
-				pageSize: PAGE_SIZE,
-				search,
-				sortBy,
-				sortDirection,
-			}),
-		]);
-		dataset = datasetPayload.dataset;
-		rows = rowsPayload.rows ?? [];
-		totalRows = rowsPayload.totalRows ?? 0;
-	} catch (loadError) {
-		error =
-			loadError instanceof Error
-				? loadError.message
-				: "Unable to load dataset rows.";
-	}
-
-	const columns =
-		rows.length > 0
-			? Object.keys(rows[0] ?? {})
-			: Array.from(
-					{ length: dataset?.columnCount ?? 0 },
-					(_, index) => `Column ${index + 1}`,
-				);
-	const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
-	function hrefForPage(nextPage: number): string {
-		const query = new URLSearchParams({ page: String(nextPage) });
-		if (search) query.set("search", search);
-		if (sortBy) query.set("sortBy", sortBy);
-		if (sortDirection === "desc") query.set("sortDirection", sortDirection);
-		return `/datasets/${datasetId}/table?${query}`;
-	}
+	const {
+		dataset,
+		analysis,
+		rows,
+		totalRows,
+		totalPages,
+		columns,
+		page,
+		search,
+		sortBy,
+		sortDirection,
+	} = await getDatasetTablePageData(datasetId, searchParams);
 
 	return (
 		<AppPageShell
@@ -80,14 +45,12 @@ export default async function DatasetTablePage({
 					<Button asChild variant="secondary">
 						<Link href="/datasets">Back to datasets</Link>
 					</Button>
-					<Button asChild>
-						<Link href={`/datasets/${datasetId}/charts`}>View charts</Link>
-					</Button>
 				</>
 			}
-			alert={<ErrorBanner message={error} />}
+			alert={<ErrorBanner message={null} />}
 		>
 			<div className="flex min-h-screen flex-col">
+				<DatasetQualitySummary dataset={dataset} analysis={analysis} />
 				<form className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
 					<div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
 						<input
@@ -131,13 +94,29 @@ export default async function DatasetTablePage({
 						</div>
 						<div className="flex items-center gap-2">
 							<Button asChild variant="secondary" disabled={page <= 1}>
-								<Link href={hrefForPage(Math.max(1, page - 1))}>Previous</Link>
+								<Link
+									href={buildDatasetTableHref(datasetId, {
+										page: Math.max(1, page - 1),
+										search,
+										sortBy,
+										sortDirection,
+									})}
+								>
+									Previous
+								</Link>
 							</Button>
 							<span>
 								Page {page} of {totalPages}
 							</span>
 							<Button asChild variant="secondary" disabled={page >= totalPages}>
-								<Link href={hrefForPage(Math.min(totalPages, page + 1))}>
+								<Link
+									href={buildDatasetTableHref(datasetId, {
+										page: Math.min(totalPages, page + 1),
+										search,
+										sortBy,
+										sortDirection,
+									})}
+								>
 									Next
 								</Link>
 							</Button>

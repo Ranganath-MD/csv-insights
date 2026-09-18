@@ -53,13 +53,11 @@ export function DatasetList({
 				) : (
 					<div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 						{datasets.map((dataset) => {
-							const isSelected = dataset.id === activeDatasetId;
-
 							return (
 								<article
 									key={dataset.id}
 									className={`border bg-card p-4 transition ${
-										isSelected ? "border-primary" : "border-border"
+										dataset.id === activeDatasetId ? "border-primary" : "border-border"
 									}`}
 								>
 									<div className="mb-4 flex items-start justify-between gap-3">
@@ -110,14 +108,13 @@ export function DatasetList({
 
 										<Button
 											asChild
-											variant={isSelected ? "secondary" : "ghost"}
+											variant="ghost"
 											size="sm"
 										>
 											<Link
 												href={`/datasets/${dataset.id}/table`}
-												aria-current={isSelected ? "page" : undefined}
 											>
-												{isSelected ? "Selected" : "View Data"}
+												View Data
 											</Link>
 										</Button>
 									</div>
