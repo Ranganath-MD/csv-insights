@@ -4,6 +4,7 @@ dist
 .next
 coverage
 .DS_Store
+.vercel
 *.tsbuildinfo
 data/
 .env
