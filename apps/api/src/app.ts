@@ -9,17 +9,6 @@ import { datasetRoutes } from "./routes/datasets.js";
 import { healthRoutes } from "./routes/health.js";
 import type { AppVariables } from "./types/context.js";
 
-export class AppError extends Error {
-	constructor(
-		public readonly status: number,
-		public readonly code: string,
-		message: string,
-	) {
-		super(message);
-		this.name = "AppError";
-	}
-}
-
 const app = new Hono<{ Variables: AppVariables }>();
 
 app.use("*", async (c, next) => {
