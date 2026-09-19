@@ -6,7 +6,8 @@ CSV Insights is intentionally designed as a small AWS-focused application with o
 
 > User uploads a CSV → the API stores the original file in Amazon S3 → S3 triggers asynchronous analysis → the Analysis Lambda processes the CSV → analysis results are stored in DynamoDB → the API retrieves persisted analysis for the frontend.
 
-The architecture is intentionally simple and does not introduce additional AWS services unless they are required by the application.
+<img width="1168" height="784" alt="6w4tV" src="https://github.com/user-attachments/assets/22a95804-6594-43a9-949f-3f90f5f87acd" />
+
 
 ---
 
