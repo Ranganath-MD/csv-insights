@@ -1,9 +1,11 @@
 {
 	"$schema": "https://turbo.build/schema.json",
+	"globalEnv": ["NEXT_PUBLIC_API_BASE_URL"],
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": ["dist/**", ".next/**"]
+			"env": ["NEXT_PUBLIC_API_BASE_URL"],
+			"outputs": ["dist/**", ".next/**", "!.next/cache/**"]
 		},
 		"dev": {
 			"cache": false,
