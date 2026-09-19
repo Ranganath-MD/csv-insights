@@ -1,7 +1,4 @@
-import { config } from "dotenv";
 import { z } from "zod";
-
-config({ path: new URL("../../.env", import.meta.url) });
 
 const envSchema = z.object({
 	NODE_ENV: z

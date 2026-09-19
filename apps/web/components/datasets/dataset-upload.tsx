@@ -1,12 +1,14 @@
 "use client";
 
 import { type ChangeEvent, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { uploadDataset } from "@/lib/api";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 export function DatasetUpload(): React.ReactElement {
+	const router = useRouter();
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export function DatasetUpload(): React.ReactElement {
 			setIsUploading(true);
 			setError(null);
 			await uploadDataset(file);
+			router.refresh();
 		} catch (uploadError) {
 			setError(
 				uploadError instanceof Error ? uploadError.message : "Upload failed",

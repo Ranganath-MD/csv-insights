@@ -1,13 +1,4 @@
 import { S3Client } from "@aws-sdk/client-s3";
-import { config } from "dotenv";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
-
-const currentDirectory = dirname(fileURLToPath(import.meta.url));
-
-// Local development reads apps/api/.env. Existing process variables are never
-// overridden, so deployed environments continue to supply their own values.
-config({ path: resolve(currentDirectory, "../../.env"), quiet: true });
 
 export class S3ConfigurationError extends Error {
 	constructor(message: string) {

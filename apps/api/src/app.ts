@@ -39,7 +39,12 @@ app.use(
 		credentials: true,
 	}),
 );
-app.use("*", secureHeaders());
+app.use(
+	"*",
+	secureHeaders({
+		crossOriginResourcePolicy: "cross-origin",
+	}),
+);
 
 app.route("/", healthRoutes);
 app.route("/datasets", datasetRoutes);
