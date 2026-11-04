@@ -20,7 +20,7 @@
 		"@hono/zod-validator": "^0.9.1",
 		"dotenv": "^17.4.2",
 		"hono": "^4.6.5",
-		"zod": "^4.6.5"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@types/node": "^22.7.4",
